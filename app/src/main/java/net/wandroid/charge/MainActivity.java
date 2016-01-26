@@ -4,19 +4,37 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 
 public class MainActivity extends AppCompatActivity {
+
+    public static final int MIN_PASSWORD_LENGTH = 6;
+    private EditText mEmailEditText;
+    private EditText mPasswordEditText;
+    private Button mLoginButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+
+        mEmailEditText = (EditText) findViewById(R.id.email_view);
+        mPasswordEditText = (EditText) findViewById(R.id.pass_view);
+        mLoginButton = (Button) findViewById(R.id.login_button);
+
+        mLoginButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isCredentialsFormatted()) {
+
+                }
+            }
+        });
+
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -26,6 +44,29 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+    }
+
+    private boolean isCredentialsFormatted() {
+        String email = mEmailEditText.getText().toString().trim();
+        boolean isEmailValid = !email.isEmpty() && email.contains("@");
+
+        if (!isEmailValid) {
+            mEmailEditText.setError("Not a valid Email");
+        } else {
+            mEmailEditText.setError(null);
+        }
+
+        String password = mPasswordEditText.getText().toString();
+        boolean isPasswordValid = password.length() >= MIN_PASSWORD_LENGTH;
+
+        if (!isPasswordValid) {
+            mPasswordEditText.setError("Password must be at least " + MIN_PASSWORD_LENGTH + " characters");
+        } else {
+            mPasswordEditText.setError(null);
+        }
+
+
+        return isEmailValid && isPasswordValid;
     }
 
     @Override
