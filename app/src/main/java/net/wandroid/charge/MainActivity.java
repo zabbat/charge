@@ -1,14 +1,22 @@
 package net.wandroid.charge;
 
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
+
+import net.wandroid.charge.http.AbstractHttpTask;
+import net.wandroid.charge.http.Async;
+import net.wandroid.charge.http.GetTask;
+import net.wandroid.charge.http.PostTask;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -16,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText mEmailEditText;
     private EditText mPasswordEditText;
     private Button mLoginButton;
+    private String mToken;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,9 +38,13 @@ public class MainActivity extends AppCompatActivity {
         mLoginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (isCredentialsFormatted()) {
+                String email = mEmailEditText.getText().toString().trim();
+                String password = mPasswordEditText.getText().toString();
+                //TODO: enable check
+                //if (isCredentialsFormatted(email, password)) {
 
-                }
+                login(email, password);
+                //}
             }
         });
 
@@ -46,8 +59,48 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private boolean isCredentialsFormatted() {
-        String email = mEmailEditText.getText().toString().trim();
+    private void login(String email, String password) {
+        //new PostTask(email, password).execute();
+        new PostTask("programming-assignment@thenewmotion.com", "Zea2E5RA", new PostTask.IPostCompletionListener() {
+            @Override
+            public void onComplete(@Nullable AbstractHttpTask.HttpException httpException, PostTask.AuthResponse authResponse) {
+                onAuthCompleted(httpException, authResponse);
+            }
+        }).execute();
+    }
+
+    @Async
+    private void onAuthCompleted(AbstractHttpTask.HttpException httpException, PostTask.AuthResponse authResponse) {
+        if (httpException != null) {
+            Log.d("egg", "auth except=" + httpException.getMessage());
+        } else {
+            Log.d("egg", "token=" + authResponse.getAccessToken());
+            mToken = authResponse.getAccessToken();
+            displayUserName();
+        }
+    }
+
+    private void displayUserName() {
+        new GetTask(mToken, new GetTask.IGetCompleteListener() {
+            @Override
+            public void onCompleted(AbstractHttpTask.HttpException httpException, GetTask.UserInfo userInfo) {
+                onGetUserInfoCompleted(httpException, userInfo);
+            }
+        }).execute();
+    }
+
+    @Async
+    private void onGetUserInfoCompleted(AbstractHttpTask.HttpException httpException, GetTask.UserInfo userInfo) {
+        if (httpException != null) {
+            Log.d("egg", "user error:" + httpException.getMessage());
+        } else {
+            Log.d("egg", "user info:" + userInfo.getFirstName() + " " + userInfo.getLastName());
+            Toast.makeText(MainActivity.this, "Logged in as " + userInfo.getFirstName() + " " + userInfo.getLastName(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+    private boolean isCredentialsFormatted(String email, String password) {
         boolean isEmailValid = !email.isEmpty() && email.contains("@");
 
         if (!isEmailValid) {
@@ -56,7 +109,6 @@ public class MainActivity extends AppCompatActivity {
             mEmailEditText.setError(null);
         }
 
-        String password = mPasswordEditText.getText().toString();
         boolean isPasswordValid = password.length() >= MIN_PASSWORD_LENGTH;
 
         if (!isPasswordValid) {
