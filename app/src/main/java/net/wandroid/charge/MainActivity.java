@@ -1,5 +1,6 @@
 package net.wandroid.charge;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -96,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Log.d("egg", "user info:" + userInfo.getFirstName() + " " + userInfo.getLastName());
             Toast.makeText(MainActivity.this, "Logged in as " + userInfo.getFirstName() + " " + userInfo.getLastName(), Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this,MapsActivity.class));
         }
     }
 
