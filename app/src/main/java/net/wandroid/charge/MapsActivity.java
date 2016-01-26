@@ -17,8 +17,17 @@ import java.io.InputStreamReader;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
+    /**
+     * Default camera position. Is currently at The netherlands
+     */
     public static final LatLng DEFAULT_LAT_LNG = new LatLng(52.3, 5.5);
+    /**
+     * Default zoom. Currently zoom in at the Netherlands
+     */
     public static final float DEFAULT_ZOOM = 6f;
+    /**
+     * The json data. Normally this would be downloaded at runtime.
+     */
     public static final String ASSETS_CHARGEPOINTS_JSON = "chargepoints.json";
     private GoogleMap mMap;
 
@@ -39,6 +48,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         loadMarksFromJson();
     }
 
+    /**
+     * Loads and convert the json data to markers on the map.
+     * It will read from a file and should be runned in a background thread.
+     */
     private void loadMarksFromJson() {
         InputStream is = null;
         try {
@@ -46,8 +59,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Gson gson = new Gson();
             InputStreamReader reader = new InputStreamReader(is);
             ChargePoint[] chargePoints = gson.fromJson(reader, ChargePoint[].class);
-            for(ChargePoint cp: chargePoints){
-                LatLng position = new LatLng(cp.lat,cp.lng);
+            for (ChargePoint cp : chargePoints) {
+                LatLng position = new LatLng(cp.lat, cp.lng);
                 mMap.addMarker(new MarkerOptions().position(position).title(cp.address));
             }
         } catch (IOException e) {
@@ -63,6 +76,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    /**
+     * ChargePoint class for json conversion.
+     */
     public static class ChargePoint {
         private String city;
         private double lng;

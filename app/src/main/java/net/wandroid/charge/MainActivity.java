@@ -1,88 +1,72 @@
 package net.wandroid.charge;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+import android.os.Handler;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import net.wandroid.charge.http.AbstractHttpTask;
 import net.wandroid.charge.http.Async;
 import net.wandroid.charge.http.GetTask;
-import net.wandroid.charge.http.PostTask;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements LoginFragment.ILoginFragmentListener {
 
-    public static final int MIN_PASSWORD_LENGTH = 6;
-    private EditText mEmailEditText;
-    private EditText mPasswordEditText;
-    private Button mLoginButton;
+
+    public static final String LOGIN_FRAG = "LOGIN_FRAG";
+    public static final String KEY_TOKEN = "KEY_TOKEN";
+    public static final String KEY_USER_INFO = "KEY_USER_INFO";
+    /**
+     * time until map activity should be displayed
+     */
+    public static final int DELAY_MILLIS = 3000;
+
+    private TextView mInfoText;
+
     private String mToken;
+
+    private GetTask.UserInfo mUserInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mEmailEditText = (EditText) findViewById(R.id.email_view);
-        mPasswordEditText = (EditText) findViewById(R.id.pass_view);
-        mLoginButton = (Button) findViewById(R.id.login_button);
+        mInfoText = (TextView) findViewById(R.id.info_text);
 
-        mLoginButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String email = mEmailEditText.getText().toString().trim();
-                String password = mPasswordEditText.getText().toString();
-                //TODO: enable check
-                //if (isCredentialsFormatted(email, password)) {
-
-                login(email, password);
-                //}
+        if (savedInstanceState != null) {
+            //Check if token or userInfo is saved
+            if (savedInstanceState.containsKey(KEY_TOKEN)) {
+                mToken = savedInstanceState.getString(KEY_TOKEN);
             }
-        });
-
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+            if (savedInstanceState.containsKey(KEY_USER_INFO)) {
+                //If we already got UserInfo then we are in the display welcome message mode
+                mUserInfo = (GetTask.UserInfo) savedInstanceState.getSerializable(KEY_USER_INFO);
+                mInfoText.setText(getString(R.string.login_message, (mUserInfo.getFirstName() + " " + mUserInfo.getLastName())));
+                mInfoText.setVisibility(View.VISIBLE);
             }
-        });
-    }
-
-    private void login(String email, String password) {
-        //new PostTask(email, password).execute();
-        new PostTask("programming-assignment@thenewmotion.com", "Zea2E5RA", new PostTask.IPostCompletionListener() {
-            @Override
-            public void onComplete(@Nullable AbstractHttpTask.HttpException httpException, PostTask.AuthResponse authResponse) {
-                onAuthCompleted(httpException, authResponse);
-            }
-        }).execute();
-    }
-
-    @Async
-    private void onAuthCompleted(AbstractHttpTask.HttpException httpException, PostTask.AuthResponse authResponse) {
-        if (httpException != null) {
-            Log.d("egg", "auth except=" + httpException.getMessage());
         } else {
-            Log.d("egg", "token=" + authResponse.getAccessToken());
-            mToken = authResponse.getAccessToken();
-            displayUserName();
+            //First time the app is created attach a login fragment to it.
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            fragmentManager.beginTransaction().replace(R.id.main_frag_container, new LoginFragment(), LOGIN_FRAG).commit();
         }
     }
 
-    private void displayUserName() {
-        new GetTask(mToken, new GetTask.IGetCompleteListener() {
+
+    /**
+     * Retrieves UserInfo and displays the user name.
+     * @param token the auth token
+     */
+    private void displayUserName(String token) {
+        new GetTask(token, new GetTask.IGetCompleteListener() {
             @Override
             public void onCompleted(AbstractHttpTask.HttpException httpException, GetTask.UserInfo userInfo) {
                 onGetUserInfoCompleted(httpException, userInfo);
@@ -90,58 +74,69 @@ public class MainActivity extends AppCompatActivity {
         }).execute();
     }
 
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        //save members so we can keep track on the states
+        if (mToken != null) {
+            outState.putString(KEY_TOKEN, mToken);
+        }
+        if (mUserInfo != null) {
+            outState.putSerializable(KEY_USER_INFO, mUserInfo);
+        }
+        super.onSaveInstanceState(outState);
+    }
+
+
+    /**
+     * handles result when USerInfo is rerteived.
+     * @param httpException is non null if retreiving failed. Will be null if no exception.
+     * @param userInfo the UserInfo.Will be null if there was an exception
+     */
     @Async
     private void onGetUserInfoCompleted(AbstractHttpTask.HttpException httpException, GetTask.UserInfo userInfo) {
+
         if (httpException != null) {
-            Log.d("egg", "user error:" + httpException.getMessage());
+            //Retreiving UserInfo failed. Display toast and let user login again.
+            Toast.makeText(this, R.string.connection_failed, Toast.LENGTH_LONG).show();
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            fragmentManager.beginTransaction().replace(R.id.main_frag_container, new LoginFragment(), LOGIN_FRAG).commit();
+            mToken=null;
         } else {
-            Log.d("egg", "user info:" + userInfo.getFirstName() + " " + userInfo.getLastName());
-            Toast.makeText(MainActivity.this, "Logged in as " + userInfo.getFirstName() + " " + userInfo.getLastName(), Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this,MapsActivity.class));
+            mUserInfo = userInfo;
+            mInfoText.setText(getString(R.string.login_message, (mUserInfo.getFirstName() + " " + mUserInfo.getLastName())));
+            mInfoText.setVisibility(View.VISIBLE);
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    startActivity(new Intent(MainActivity.this, MapsActivity.class));
+                    finish();
+                }
+            }, DELAY_MILLIS);
+
         }
     }
 
-
-    private boolean isCredentialsFormatted(String email, String password) {
-        boolean isEmailValid = !email.isEmpty() && email.contains("@");
-
-        if (!isEmailValid) {
-            mEmailEditText.setError("Not a valid Email");
-        } else {
-            mEmailEditText.setError(null);
-        }
-
-        boolean isPasswordValid = password.length() >= MIN_PASSWORD_LENGTH;
-
-        if (!isPasswordValid) {
-            mPasswordEditText.setError("Password must be at least " + MIN_PASSWORD_LENGTH + " characters");
-        } else {
-            mPasswordEditText.setError(null);
-        }
-
-
-        return isEmailValid && isPasswordValid;
-    }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
+    @Async
+    public void onLoggedIn(String token) {
+        mToken = token;
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        // remove login fragment
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        Fragment fragment = fragmentManager.findFragmentByTag(LOGIN_FRAG);
+        if (fragment != null) {
+            fragmentManager.beginTransaction().remove(fragment).commit();
         }
 
-        return super.onOptionsItemSelected(item);
+        //Hide keyboard
+        InputMethodManager inputManager = (InputMethodManager)
+                getSystemService(Context.INPUT_METHOD_SERVICE);
+
+        inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
+                InputMethodManager.HIDE_NOT_ALWAYS);
+
+        displayUserName(mToken);
     }
 }

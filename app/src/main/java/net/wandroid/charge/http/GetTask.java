@@ -3,15 +3,17 @@ package net.wandroid.charge.http;
 import com.google.gson.Gson;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-/**
- * Created by zabbat on 2016-01-26.
- */
+
 public class GetTask extends AbstractHttpTask {
 
     public static final String AUTHORIZATION = "Authorization";
+    public static final String BEARER = "Bearer ";
+    public static final String GET = "GET";
+    public static final String HTTP_API_TEST_THENEWMOTION_COM_V1_ME = "http://api.test.thenewmotion.com/v1/me";
 
     private final String mToken;
     private final IGetCompleteListener mGetCompleteListener;
@@ -27,11 +29,11 @@ public class GetTask extends AbstractHttpTask {
     protected String doInBackground(Void... params) {
         HttpURLConnection connection = null;
         try {
-            URL url = new URL("http://api.test.thenewmotion.com/v1/me");
+            URL url = new URL(HTTP_API_TEST_THENEWMOTION_COM_V1_ME);
             connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
+            connection.setRequestMethod(GET);
             connection.setDoInput(true);
-            connection.setRequestProperty("Authorization", "Bearer " + mToken);
+            connection.setRequestProperty(AUTHORIZATION, BEARER + mToken);
 
             int responseCode = connection.getResponseCode();
             if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -68,10 +70,19 @@ public class GetTask extends AbstractHttpTask {
     }
 
     public interface IGetCompleteListener {
+        /**
+         * Callback when the task has finished
+         * @param httpException Will be null if no error occured,
+         * @param userInfo the retreived UserInfo. Will be null if there is an error
+         */
         void onCompleted(HttpException httpException, UserInfo userInfo);
     }
 
-    public static class UserInfo {
+    /**
+     * UserInfo clas for Json Conversion
+     * This class has not implmented all members as they are not used for this application
+     */
+    public static class UserInfo implements Serializable {
         private String lastName;
         private String firstName;
 

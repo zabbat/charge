@@ -18,6 +18,11 @@ public class PostTask extends AbstractHttpTask {
     public static final String CONTENT_TYPE = "Content-Type";
     public static final String AUTHORIZATION = "Authorization";
     public static final String APPLICATION_URL_ENCODED = "application/x-www-form-urlencoded";
+    /**
+     * This is the base64 encoding of:
+     * test_client_id:test_client_secretbase64: invalid input
+     * If this will be changed in runtime, concider to not hard code it.
+     */
     public static final String BASIC_BASE64_SECRET = "Basic " + "dGVzdF9jbGllbnRfaWQ6dGVzdF9jbGllbnRfc2VjcmV0=";
     public static final String GRANT_TYPE = "grant_type";
     public static final String USERNAME = "username";
@@ -46,13 +51,16 @@ public class PostTask extends AbstractHttpTask {
             connection.setDoOutput(true);
             connection.setDoInput(true);
             connection.setRequestProperty(CONTENT_TYPE, APPLICATION_URL_ENCODED);
-            //test_client_id:test_client_secretbase64: invalid input
+
             connection.setRequestProperty(AUTHORIZATION, BASIC_BASE64_SECRET);
 
             // add data params
             OutputStream os = connection.getOutputStream();
             Map<String, String> data = new HashMap<>();
             data.put(GRANT_TYPE, "password");
+
+            //Note that we are using http, we cold as well write our credential in a public facebook post, but for this
+            // assignment http is OK.
             data.put(USERNAME, mEmail);
             data.put(PASSWORD, mPassword);
             String dataString = getDataString(data);
@@ -109,10 +117,18 @@ public class PostTask extends AbstractHttpTask {
     }
 
     public interface IPostCompletionListener {
-        void onComplete(@Nullable HttpException httpException, AuthResponse authResponse);
+        /**
+         * Callback when authorization completed
+         * @param httpException will be non null if there was an error
+         * @param authResponse the AuthResponse. Will be null if there is an error
+         */
+        void onComplete(@Nullable HttpException httpException, @Nullable AuthResponse authResponse);
     }
 
 
+    /**
+     * AuthREsponse class for Json conversion
+     */
     public static class AuthResponse {
         private String token_type;
         private String access_token;

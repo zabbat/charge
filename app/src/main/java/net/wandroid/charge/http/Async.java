@@ -4,7 +4,9 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 /**
- * Created by zabbat on 2016-01-26.
+ * the Async annotation indicates that a method can be called asyncronus.
+ * In such method it is extra important to pay attention to if the activity is still valid
+ * and other problems that can occure in the life cycle.
  */
 @Target(ElementType.METHOD)
 public @interface Async {
